@@ -79,10 +79,6 @@ queue <Node *> *rootNodeList;	//[numBridgeNodes];
 
 Node **bridgeNodeRootList;
 
-int SKIP = 1;
-int MAXTIMES = 5;
-int MAXTIMESD = 5;
-
 int coalesced;	//0=false, 1=true
 int blocking;		//0=nonblocking, 1=blocking
 int type;				//0=optimized independent, 1=independent, 2=collective
@@ -100,6 +96,19 @@ double Tmax, Tmin, Tmax_test2;
 MPI_Request *req, *wrequest;	//req[myWeight], wrequest[myWeight+1];
 MPI_Status stat, *wstatus;		//stat, wstatus[myWeight+1];
 
+int hPSet;  // Punit Event Set handle
+int hL2Set;  // Punit Event Set handle
+int hNWSet; // Network Event Set handle
+int hIOSet; // I/O Event Set handle
+
+Node *head, *tail, *root;
+
+// * * * *
+
+int SKIP = 1;
+int MAXTIMES = 5;
+int MAXTIMESD = 5;
+
 char *fileNameION = "/dev/null";
 char *fileNameFS = "dummyFile";
 char *fileNameFSBN = "dummyFileBN";
@@ -108,13 +117,6 @@ char *fileNameFSCO = "dummyFileCO";
 MPI_File fileHandle;
 MPI_Status status;
 MPI_Request request;
-
-int hPSet;  // Punit Event Set handle
-int hL2Set;  // Punit Event Set handle
-int hNWSet; // Network Event Set handle
-int hIOSet; // I/O Event Set handle
-
-Node *head, *tail, *root;
 
 int writeFlag=1; 
 

@@ -22,7 +22,7 @@ class dataBlock {
 				alpha[i] = rand() % 100;
 			}
 		}
-		catch (bad_alloc& ba) {
+		catch (std::bad_alloc& ba) {
 				cerr << "Bad allocation for alpha\n" << ba.what() << endl;
 		}
 	}
@@ -36,4 +36,4 @@ class dataBlock {
 	}
 
 };
-
+#endif

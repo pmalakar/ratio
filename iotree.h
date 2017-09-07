@@ -125,29 +125,6 @@ void coalesceData (dataBlock *, int);
 void getData(int);
 int findNeighbours (int);
 
-
-/* Allocate and free memory before and after use */ //Though this is bit of overhead but .. Just to ensure there is no spatial locality interference affecting the statistics
-    
-inline void alloc_free (dataBlock *datum, int type) {
-    
-    if (type == 1) {
-
-		datum->allocElement(1);
-		datum->allocElement(2);
-		datum->allocElement(3);
-
-    }
-    else {
-
-		datum->freeElement(1);
-		datum->freeElement(2);
-		datum->freeElement(3);
-
-    }
-
-}
-
-
 inline void prnerror (int error_code, char *string)
 {
 	
