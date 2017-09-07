@@ -118,6 +118,26 @@ Node *head, *tail, *root;
 
 int writeFlag=1; 
 
+int MPI_Init( int *argc, char ***argv )
+{
+  
+  fileSize = atoi (*argv[1]) * oneKB;	
+  coalesced = atoi(*argv[2]);
+  blocking = atoi(*argv[3]);
+  type = atoi(*argv[4]);
+  streams = atoi(*argv[5]);
+  count = fileSize;				//weak scaling
+
+  return PMPI_Init (argc, argv);
+}
+
+int MPI_File_open(MPI_Comm comm, char *filename, int amode,
+                  MPI_Info info, MPI_File *fh)
+{
+
+	if (myrank < 2) printf("new open function executed\n");
+  return PMPI_File_open(comm, filename, amode, info, fh);
+}
 
 int MPI_File_write_at(MPI_File fh, MPI_Offset offset, void *buf,
                       int count, MPI_Datatype datatype, MPI_Status *status)
@@ -1297,8 +1317,8 @@ void traverse (int index, int level) {
 	int main (int argc, char **argv) {
 
 		double tIOStart, tIOEnd;
-
 		int required=3, provided;
+
 		//		if (argc<6) return 0;
 		MPI_Init (&argc, &argv);
 		//MPI_Init_thread (&argc, &argv, required, &provided);
@@ -1307,12 +1327,12 @@ void traverse (int index, int level) {
 		MPI_Comm_rank (MPI_COMM_WORLD, &myrank);
 		MPI_Comm_size (MPI_COMM_WORLD, &commsize);
 
-		fileSize = atoi (argv[1]) * oneKB;	
-		coalesced = atoi(argv[2]);
-		blocking = atoi(argv[3]);
-		type = atoi(argv[4]);
-		streams = atoi(argv[5]);
-		count = fileSize;				//weak scaling
+		//fileSize = atoi (argv[1]) * oneKB;	
+		//coalesced = atoi(argv[2]);
+		//blocking = atoi(argv[3]);
+		//type = atoi(argv[4]);
+		//streams = atoi(argv[5]);
+		//count = fileSize;				//weak scaling
 
 		getPersonality(myrank, -1);		//second parameter = -1 ==> bridge node info
 
