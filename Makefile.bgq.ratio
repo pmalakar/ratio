@@ -26,12 +26,14 @@ endif
 
 LIBHPM = -L/soft/perftools/hpctw/lib -lmpihpm 
 LIBBGPM = -L/bgsys/drivers/ppcfloor/bgpm/lib -lbgpm -lrt -lstdc++ 
-LIBUTILS =-L/projects/Performance/preeti/utils -lbgqutils
 LIBMPITRACE =-L/soft/perftools/hpctw/lib -lmpitrace
+LIBUTILS =-L/projects/Performance/preeti/utils -lbgqutils 
+LIBALGO = -L./ -lalgo
+
 ifdef mpi3
 LIBS += $(LIBUTILS) $(LIBBGPM) #$(LIBMPITRACE)
 else
-LIBS += $(LIBUTILS) #$(LIBMPITRACE)
+LIBS += $(LIBALGO) 
 endif
 INC += -I/projects/Performance/preeti/utils	
 
@@ -47,7 +49,7 @@ OBJS = 	$(SRCS:.cxx=.o)
 ifdef mpi3
 TARGET = iotree.mpi3
 else
-TARGET = iotree
+TARGET = testcase
 endif
 
 all:    $(TARGET)
@@ -60,5 +62,5 @@ $(TARGET): $(OBJS)
 		$(CXX) $(CFLAGS) -o $(TARGET) $(OBJS) $(INC) $(LIBS) $(DEFINES)   
 
 clean:
-		$(RM) *.o *~
+		$(RM) *.o *~ $(TARGET)
 
