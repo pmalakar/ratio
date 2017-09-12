@@ -37,7 +37,8 @@
 #endif
 
 //BGQ specific
-int numNodes, myWeight, myBNIdx;
+static int myWeight;
+int numNodes, myBNIdx;
 int numBridgeNodes, numBridgeNodesAll;
 int numMPInodes, bncommsize;
 
@@ -79,7 +80,7 @@ queue <Node *> *rootNodeList;	//[numBridgeNodes];
 
 Node **bridgeNodeRootList;
 
-int coalesced;	//0=false, 1=true
+//int coalesced;	//0=false, 1=true
 int blocking;		//0=nonblocking, 1=blocking
 int type;				//0=optimized independent, 1=independent, 2=collective
 int streams;		//0=use gather, 1=1 core collects, 2=2 core collects and sends (=2 streams), 4=4 streams
@@ -102,46 +103,86 @@ Node *head, *tail, *root;
 
 // * * * *
 
+//adapted verbatim from https://wiki.alcf.anl.gov/parts/index.php/Blue_Gene/Q#Allocating_Memory
+void * bgq_malloc(size_t n)
+{
+    void * ptr;
+    size_t alignment = 32; /* 128 might be better since that ensures every heap allocation 
+                            * starts on a cache-line boundary */
+    posix_memalign( &ptr , alignment , n );
+    return ptr;
+}
+
+
 void reroute (MPI_File fh, MPI_Offset offset, void *buf,
               int count, MPI_Datatype datatype, MPI_Request *request)
 {
 
-	MPI_Request sendreq; 
-	MPI_Status sendst; 
+  MPI_Request *req, sendreq, *wrequest; 
+	MPI_Status sendst, status; 
 
-  int coalesced = 0, result;
+  int result, idx;
 
   //If I am not a bridge node 
   if (bridgeNodeInfo[1] > 1) {
-  //If I have been assigned a new bridge node 
+  //If I have been assigned a new bridge node, send data 
    int index = (nodeID*ppn) % midplane ; 
    if(newBridgeNode[index] != -1) {	
-    int	myBridgeRank = bridgeRanks[newBridgeNode[index]] + coreID; 
-
-    //send parallel streams of data
-    //if (coalesced == 1) 
-     //coalesceData(datum, myBridgeRank);
-
-    //no coalescing
-    //else {
+     int	myBridgeRank = bridgeRanks[newBridgeNode[index]] + coreID; 
      MPI_Isend (buf, count, datatype, myBridgeRank, myBridgeRank, MPI_COMM_WORLD, &sendreq);	
      MPI_Wait (&sendreq, &sendst);
-    //}
    }
-
 	//If I have not been assigned a new bridge node, write 
    else {
 		 result = PMPI_File_iwrite_at (fh, offset, buf, count, datatype, request);
-		if (result != MPI_SUCCESS) 
+		 if (result != MPI_SUCCESS) 
 			prnerror (result, "nonBN MPI_File_write_at Error:");
+		 MPI_Wait (request, &status);
 	 }
+  }
+  else if (bridgeNodeInfo[1] == 1) {
+
+		//Allocation	
+		//shuffledNodesData = new double *[myWeight];
+		if (datatype == MPI_DOUBLE)
+		  shuffledNodesData = (double **) bgq_malloc (myWeight * sizeof(double));
+
+		if (shuffledNodesData == NULL)
+			printf("\n%d: Error in allocating %ld bytes\n", myrank, myWeight * sizeof (double));
+
+    wrequest = (MPI_Request *) bgq_malloc ((myWeight+1) * sizeof(MPI_Request)); 
+    // write own data
+    result = MPI_File_iwrite_at (fh, offset, buf, count, MPI_DOUBLE, &wrequest[myWeight]);
+
+    // recv
+		req = (MPI_Request *) bgq_malloc (myWeight * sizeof(MPI_Request)); 
+	  for (int i=0; i<myWeight ; i++) {
+      assert(shuffledNodesData[i]);
+      MPI_Irecv (shuffledNodesData[i], count, datatype, shuffledNodes[i], myrank, MPI_COMM_WORLD, &req[i]); 
+    }
+
+    for (int i=0; i<myWeight ; i++) {
+      MPI_Waitany (myWeight, req, &idx, &stat);
+      result = MPI_File_iwrite_at (fh, (MPI_Offset)shuffledNodes[idx]*count*sizeof(double), shuffledNodesData[idx], count, MPI_DOUBLE, &wrequest[idx]);
+      if (result != MPI_SUCCESS) 
+        prnerror (result, "BN for nonblocking MPI_File_write_at Error:");
+    }
+
+		// wait for own data and receivers' data write completion
+  //  if (blocking == 0) 
+      MPI_Waitall (myWeight+1, wrequest, wstatus);
   }
 
 }
 
 int MPI_Init( int *argc, char ***argv )
 {
-  printf ("Test %u\n", (*argv)[1]);
+  //printf ("Test %d\n", (*argv)[3]);
+  //fileSize = atoi (*argv)[1] * oneKB;	
+  //coalesced = atoi(argv[2]);
+  //blocking = atoi (*argv)[3];
+  //type = atoi (*argv)[4];
+  //streams = atoi (*argv)[5];
 
   return PMPI_Init (argc, argv);
 }
@@ -577,8 +618,10 @@ void traverse (int index, int level) {
 		root = new Node (currentNode);
 		bridgeNodeRootList[++iter] = root;
 #ifdef DEBUG
+#ifdef STATS
 		getMemStats(myrank, 1);
 		printf("%d: expanding root %d\n", myrank, currentNode);
+#endif
 #endif
 		expandNode (root);
 #ifdef DEBUG
@@ -857,7 +900,7 @@ void traverse (int index, int level) {
 		printf ("\n%d:%d:%d: real weight = %d\n", myrank, coreID, nodeID, myWeight);
 #endif
 
-		shuffledNodes = (int *) malloc (myWeight * sizeof(int));
+		shuffledNodes = (int *) bgq_malloc (myWeight * sizeof(int));
 		if (!shuffledNodes) printf("Panic: shuffledNodes not allocated\n");
 		for (j=0; j<myWeight ; j++) 
 			shuffledNodes[j] = -1;
@@ -875,9 +918,9 @@ void traverse (int index, int level) {
 				k++;
 				shuffledNodes[k] = lb + j + coreID;
 
-#ifdef DEBUG
+//#ifdef DEBUG
 				printf("%d:(%d,%d) k=%d newBridgeNode[%d]=%d bn=%d %d\n", myrank, nodeID, coreID, k, j, newBridgeNode[j], bridgeRanks[newBridgeNode[j]], shuffledNodes[k]); 
-#endif
+//#endif
 
 			}
 		}
@@ -889,48 +932,20 @@ void traverse (int index, int level) {
 
 		//Allocation	
 		//shuffledNodesData = new double *[myWeight];
-		shuffledNodesData = (double **) malloc (myWeight * sizeof(double));
-		if (shuffledNodesData == NULL)
-			printf("\n%d: Error in allocating %ld bytes\n", myrank, myWeight * sizeof (double));
-
-/*
-		if (coalesced == 1) {
-			int datalen = count * ppn;
-			if(streams >= 2) datalen /= streams;
-
-			if ((streams < 2 && coreID == 0 ) || (streams >=2 && coreID%(ppn/streams)==0)) { 
-				for (int i=0; i<myWeight; i++) {
-					shuffledNodesData[i] = (double *) malloc (datalen * sizeof(double));
-					if (shuffledNodesData[i] == NULL) printf("\n%d: Error in allocating %ld bytes for %d\n", myrank, datalen * sizeof (double) ,  i);
-				}
-#ifdef DEBUG
-				printf ("%d: allocated %d * %d bytes\n", myrank, myWeight, datalen);
-#endif
-			}
-
-		}
-		else
-		{
-					 for (int i=0; i<myWeight; i++) { 
-						 //shuffledNodesData[i] = new double[count];
-						 shuffledNodesData[i] = (double *) malloc (count * sizeof(double));
-					 }
-#ifdef DEBUG
-					 printf ("uncoalesced %d: allocated %d * %d bytes\n", myrank, myWeight, count);
-#endif
-		}
-*/
+		//shuffledNodesData = (double **) malloc (myWeight * sizeof(double));
+		//if (shuffledNodesData == NULL)
+		//	printf("\n%d: Error in allocating %ld bytes\n", myrank, myWeight * sizeof (double));
 
 		MPI_Barrier (COMM_BRIDGE_NODES);	
 
-#ifdef DEBUG
+//#ifdef DEBUG
 		printf ("\n%d:%d:%d: myWeight = %d\n", myrank, coreID, nodeID, myWeight);
-#endif
+//#endif
 	}
 
 	void initTree(int n) {
 
-		bridgeNodeRootList = (Node **) malloc (n*sizeof(Node *));
+		bridgeNodeRootList = (Node **) bgq_malloc (n*sizeof(Node *));
 #ifdef DEBUG
 		if (bridgeNodeRootList == NULL)	printf("\n%d: malloc fail\n", myrank);
 #endif
@@ -984,7 +999,9 @@ void traverse (int index, int level) {
 #endif
 
 #ifdef DEBUG
+#ifdef STATS
 		if (myrank == 0 || myrank == 1) getMemStats(myrank, 1);
+#endif
 #endif
 
 		bridgeNodeAll = new int [2*midplane];
@@ -1007,7 +1024,9 @@ void traverse (int index, int level) {
 		rootNodeList = new queue<Node *> [numBridgeNodes];
 
 #ifdef DEBUG
+#ifdef STATS
 		if (myrank == 0 || myrank == 1) getMemStats(myrank, 1);
+#endif
 #endif
 
 		rootps = floor(myrank/(midplane)) * (midplane);
@@ -1060,7 +1079,9 @@ void traverse (int index, int level) {
 #endif
 
 #ifdef DEBUG
+#ifdef STATS
 		if (myrank == 0 || myrank == 1) getMemStats(myrank, 1);
+#endif
 #endif
 
 		double tOStart = MPI_Wtime();
@@ -1125,8 +1146,8 @@ void traverse (int index, int level) {
 					printf("%d: allocation error for %ld bytes\n", myrank, count*ppn*sizeof(double)/streams);
 			}
 		}
-*/
 		MPI_Barrier (MPI_COMM_WORLD);
+*/
 
 }
 
@@ -1138,18 +1159,16 @@ void fini_ () {
 		//bgpmfinalize(0, 0);
 #endif
 
-		if (coalesced == 1 && (coreID == 0 || coreID == ppn/2))			//FIXME
-			free(dataPerNode);
-
 		if (bridgeNodeInfo[1] == 1) {
-			if ((coalesced == 1 && coreID == 0) || coalesced == 0)
-				for (int i=0; i<myWeight; i++) free(shuffledNodesData[i]);
+			for (int i=0; i<myWeight; i++) free(shuffledNodesData[i]);
 			free(shuffledNodesData);
 		}
 
 
 #ifdef DEBUG
+#ifdef STATS
 		if (myrank == 0 || myrank == 1) getMemStats(myrank, 1);
+#endif
 #endif
 
 		int index = (nodeID*ppn) % midplane ;
@@ -1165,15 +1184,6 @@ void fini_ () {
 
 }
 
-//adapted verbatim from https://wiki.alcf.anl.gov/parts/index.php/Blue_Gene/Q#Allocating_Memory
-void * bgq_malloc(size_t n)
-{
-    void * ptr;
-    size_t alignment = 32; /* 128 might be better since that ensures every heap allocation 
-                            * starts on a cache-line boundary */
-    posix_memalign( &ptr , alignment , n );
-    return ptr;
-}
 
 
 double ClockSpeed()

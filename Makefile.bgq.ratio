@@ -15,7 +15,7 @@ CFLAGS=-O2 -g -qmaxmem=-1 #-S #-O3
 ifdef mpi3
 DEFINES += -DBGQ -DMPI3 #-DDEBUG
 else
-DEFINES += -DBGQ #-DSTATS #-DDEBUG
+DEFINES += -DBGQ -DDEBUG  #-DSTATS #-DDEBUG
 endif
 
 ifdef VESTA
@@ -37,7 +37,7 @@ LIBS += $(LIBALGO)
 endif
 INC += -I/projects/Performance/preeti/utils	
 
-SRCS = contiguous.cpp	
+SRCS = contiguous.cxx	
 
 #route.cxx \
 		personality.cxx \
