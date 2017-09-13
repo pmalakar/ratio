@@ -209,7 +209,7 @@ int MPI_File_iwrite_at(MPI_File fh, MPI_Offset offset, void *buf,
   
 	if (myrank < 2) printf("new iwrite function executed\n");
   
-  reroute(fh, offset, buf, count, datatype, request);
+  //reroute(fh, offset, buf, count, datatype, request);
 
   //
   //PMPI_File_iwrite_at(fh, offset, buf, count, datatype, request);
@@ -399,7 +399,7 @@ void traverse (int index, int level) {
 			depth = (node->getChild(i))->getDepth();
 #ifdef DEBUG
 			if (myrank == bridgeRanks[0]) 
-				printf ("%d: child %d depth %d i %d\n", myrank, child, depth, i);
+				printf ("%d: child %d depth %d i=%d\n", myrank, child, depth, i);
 #endif
 
 #ifdef DEBUG
@@ -769,7 +769,7 @@ void traverse (int index, int level) {
 			for (i=0; i<numBridgeNodes ; i++) { 
 				if (myrank == bridgeRanks[i]) myBNIdx = i;
 #ifdef DEBUG
-				printf("%d got it: %d\n", myrank, bridgeRanks[i]);		
+				printf("%d got it: %d %d\n", myrank, i, bridgeRanks[i]);		
 #endif
 			}
 
@@ -792,6 +792,8 @@ void traverse (int index, int level) {
 #endif
 				}
 			}
+
+//      MPI_Barrier (MPI_COMM_WORLD);
 
 			// build the topology local to the partition for all bridge nodes
 			tStart = MPI_Wtime();
@@ -843,12 +845,12 @@ void traverse (int index, int level) {
 				}
 			}
 
-//#ifdef DEBUG
+#ifdef DEBUG
 			for (j=0; j<midplane; j++) 
 				if (newBridgeNode[j] >= 0 && myrank == bridgeRanks[newBridgeNode[j]] && depthInfo[newBridgeNode[j]][j] != 255)
 					printf("%d: %d %d is new BN for %d prev %d %d difference %d\n", myrank, bridgeRanks[newBridgeNode[j]], depthInfo[newBridgeNode[j]][j], j, bridgeNodeAll[j*2], bridgeNodeAll[j*2+1], bridgeNodeAll[j*2+1]-depthInfo[newBridgeNode[j]][j] );
 //				printf("%d: %d (%d) is the new BN for %d at distance %d %d\n", myrank, bridgeRanks[newBridgeNode[j]], newBridgeNode[j], j, bridgeNodeAll[j*2+1], depthInfo[newBridgeNode[j]][j]);
-//#endif
+#endif
 
 			for (bn=0; bn<numBridgeNodes ; bn++) 
 				if (bridgeRanks[bn] == myrank) myWeight = int(avgWeight[bn]);
@@ -994,8 +996,11 @@ void traverse (int index, int level) {
 			numBridgeNodes = 32;		
 		else if (numMPInodes == 8192)
 			numBridgeNodes = 64;		
-#else
-		numBridgeNodes = 32;	//vesta
+#else // #-DVESTA
+		if (numMPInodes <= 512)
+		 numBridgeNodes = 32;	
+		else if (numMPInodes == 1024)
+		 numBridgeNodes = 64;	
 #endif
 
 #ifdef DEBUG
@@ -1036,7 +1041,8 @@ void traverse (int index, int level) {
 		numMidplanes = (commsize/ppn) / midplane;
 
 #ifdef DEBUG
-		if (coreID == 0) printf("Logistics: %d:%d:%d: %d %d %d %d %d\n", myrank, nodeID, coreID, lb, ub, rootps, midplane, BAG);
+		if (coreID == 0) printf("Logistics: %d:%d:%d of %d: %d %d %d %d %d\n", myrank, nodeID, coreID, ppn, lb, ub, rootps, midplane, BAG);
+		if (coreID == 0) printf("Special Logistics: %d %d %d %d %d\n", myrank, ppn, numMidplanes, MidplaneSize, numBridgeNodes);
 #endif
 
 		initNeighbours(commsize);
@@ -1060,7 +1066,7 @@ void traverse (int index, int level) {
 #ifdef DEBUG
 		if (bridgeNodeInfo[1] == 1)
 			if (numBridgeNodes * numMidplanes * ppn != bncommsize)
-				printf("%d: PANIC: %d * %d != %d\n", myrank, numBridgeNodes, numMidplanes, ppn, bncommsize);
+				printf("%d: PANIC: %d * %d * %d != %d\n", myrank, numBridgeNodes, numMidplanes, ppn, bncommsize);
 			else
 				printf("%d: numMPInodes = %d numBNnodes = %d\n", myrank, numMPInodes, numBridgeNodes);
 #endif
