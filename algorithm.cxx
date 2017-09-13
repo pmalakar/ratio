@@ -736,7 +736,7 @@ void traverse (int index, int level) {
 
 			result = MPI_Wait(&requestSend, &statusSend);
 			if (result != MPI_SUCCESS) 
-				prnerror (result, "MPI_Waitall Error: ");
+				prnerror (result, "MPI_Wait Error: line 737: ");
 
 			int tag = rootps + 1, tagAll = rootps + 2;
 			result = MPI_Irecv (bridgeRanks, numBridgeNodes, MPI_INT, rootps, tag, MPI_COMM_WORLD, &requestRecv);
@@ -1038,10 +1038,12 @@ void traverse (int index, int level) {
 		lb = floor(myrank/midplane) * (midplane);
 		ub = lb + midplane; 
 
-		numMidplanes = (commsize/ppn) / midplane;
+		//numMidplanes = (commsize/ppn) / midplane;
+		numMidplanes = commsize / midplane;
 
 #ifdef DEBUG
-		if (coreID == 0) printf("Logistics: %d:%d:%d of %d: %d %d %d %d %d\n", myrank, nodeID, coreID, ppn, lb, ub, rootps, midplane, BAG);
+		if (coreID == 0) printf("Logistics: %d:%d:%d of %d: %d %d %d %d %d\n", 
+       myrank, nodeID, coreID, ppn, lb, ub, rootps, midplane, BAG);
 		if (coreID == 0) printf("Special Logistics: %d %d %d %d %d\n", myrank, ppn, numMidplanes, MidplaneSize, numBridgeNodes);
 #endif
 

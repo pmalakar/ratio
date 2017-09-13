@@ -15,7 +15,7 @@ for iter in 1 # 2
 do
 for THRD in 1 #2 4 8 16
 do
-for ppn in 2 #16 #8 #4 #2 1
+for ppn in 1 #16 #8 #4 #2 1
 do
 for MSG in 16 #128 #256 512 1024 2048 # 4096 8192
 do 
