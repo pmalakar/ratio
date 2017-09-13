@@ -441,6 +441,7 @@ void traverse (int index, int level) {
 					printf ("%d: was this node %d marked %d\n", myrank, child, revisit[child][0]);
 #endif
 
+					printf ("%d: check new: %d %d %d\n", myrank, depthInfo[bn][child], newDepth, maxWeight);
 					//if (revisit[child][0] == 1)	
 					//if (depthInfo[bn][child] < newDepth && avgWeight[bn] < maxWeight-1) {
 					if (depthInfo[bn][child] < newDepth && avgWeight[bn] < maxWeight-1 && bridgeRanks[bn] != bridgeNodeAll[childIdx*2]*ppn) {
@@ -1089,14 +1090,15 @@ void traverse (int index, int level) {
 #ifdef DEBUG
 #ifdef STATS
 		if (myrank == 0 || myrank == 1) getMemStats(myrank, 1);
-#endif
-#endif
-
-		double tOStart = MPI_Wtime();
 
 		Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAPAVAIL, &heapAvail); 
 		MPI_Reduce(&heapAvail, &memAvail, 1, MPI_UINT64_T, MPI_MIN, 0, MPI_COMM_NODE);
 		MPI_Bcast(&memAvail, 1, MPI_UINT64_T, 0, MPI_COMM_NODE);	
+
+#endif
+#endif
+
+		double tOStart = MPI_Wtime();
 
 /*
 		if (coalesced == 1 && streams < 2)
