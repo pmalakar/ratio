@@ -152,7 +152,7 @@ void reroute (MPI_File fh, MPI_Offset offset, void *buf,
 
     wrequest = (MPI_Request *) bgq_malloc ((myWeight+1) * sizeof(MPI_Request)); 
     // write own data
-    result = MPI_File_iwrite_at (fh, offset, buf, count, MPI_DOUBLE, &wrequest[myWeight]);
+    result = PMPI_File_iwrite_at (fh, offset, buf, count, MPI_DOUBLE, &wrequest[myWeight]);
 
     // recv
 		req = (MPI_Request *) bgq_malloc (myWeight * sizeof(MPI_Request)); 
@@ -163,7 +163,7 @@ void reroute (MPI_File fh, MPI_Offset offset, void *buf,
 
     for (int i=0; i<myWeight ; i++) {
       MPI_Waitany (myWeight, req, &idx, &stat);
-      result = MPI_File_iwrite_at (fh, (MPI_Offset)shuffledNodes[idx]*count*sizeof(double), shuffledNodesData[idx], count, MPI_DOUBLE, &wrequest[idx]);
+      result = PMPI_File_iwrite_at (fh, (MPI_Offset)shuffledNodes[idx]*count*sizeof(double), shuffledNodesData[idx], count, MPI_DOUBLE, &wrequest[idx]);
       if (result != MPI_SUCCESS) 
         prnerror (result, "BN for nonblocking MPI_File_write_at Error:");
     }
@@ -209,7 +209,7 @@ int MPI_File_iwrite_at(MPI_File fh, MPI_Offset offset, void *buf,
   
 	if (myrank < 2) printf("new iwrite function executed\n");
   
-  //reroute(fh, offset, buf, count, datatype, request);
+  reroute(fh, offset, buf, count, datatype, request);
 
   //
   //PMPI_File_iwrite_at(fh, offset, buf, count, datatype, request);
@@ -1100,6 +1100,7 @@ void traverse (int index, int level) {
 
 		double tOStart = MPI_Wtime();
 
+			maxWeight = 1000;	//high
 /*
 		if (coalesced == 1 && streams < 2)
 			maxWeight = memAvail/(2 * count * ppn * sizeof(double));

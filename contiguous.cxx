@@ -40,11 +40,11 @@ int writeFile(dataBlock *datum, int count, int all)
 		else {
 			MPIO_Request req_iw;
 			MPI_Status st_iw;
-//			result = MPI_File_iwrite_at (fileHandle, (MPI_Offset)rank*count*sizeof(double), datum->getAlphaBuffer(), count, MPI_DOUBLE, &req_iw);
-//			MPI_Wait(&req_iw, &st_iw);
+			result = MPI_File_iwrite_at (fileHandle, (MPI_Offset)rank*count*sizeof(double), datum->getAlphaBuffer(), count, MPI_DOUBLE, &req_iw);
+			MPI_Wait(&req_iw, &st_iw);
 		}
 
-//		MPI_Get_elements( &status, MPI_CHAR, &nbytes );
+		MPI_Get_elements( &status, MPI_CHAR, &nbytes );
 	}
 
 	return nbytes;
