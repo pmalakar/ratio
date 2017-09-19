@@ -209,6 +209,8 @@ int MPI_File_iwrite_at(MPI_File fh, MPI_Offset offset, void *buf,
   
 	if (myrank < 2) printf("new iwrite function executed\n");
   
+  MPI_Barrier (MPI_COMM_WORLD);
+
   reroute(fh, offset, buf, count, datatype, request);
 
   //
