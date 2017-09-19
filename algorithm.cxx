@@ -115,7 +115,7 @@ void * bgq_malloc(size_t n)
 
 
 void reroute (MPI_File fh, MPI_Offset offset, void *buf,
-              int count, MPI_Datatype datatype, MPI_Request *request)
+              int count, MPI_Datatype datatype, MPIO_Request *request)
 {
 
   MPI_Request *req, sendreq, *wrequest; 
@@ -151,6 +151,8 @@ void reroute (MPI_File fh, MPI_Offset offset, void *buf,
 			printf("\n%d: Error in allocating %ld bytes\n", myrank, myWeight * sizeof (double));
 
     wrequest = (MPI_Request *) bgq_malloc ((myWeight+1) * sizeof(MPI_Request)); 
+    request = &wrequest[myWeight];
+
     // write own data
     result = PMPI_File_iwrite_at (fh, offset, buf, count, MPI_DOUBLE, &wrequest[myWeight]);
 
@@ -204,7 +206,7 @@ int MPI_File_write_at(MPI_File fh, MPI_Offset offset, void *buf,
 }
 
 int MPI_File_iwrite_at(MPI_File fh, MPI_Offset offset, void *buf,
-                      int count, MPI_Datatype datatype, MPI_Request *request)
+                      int count, MPI_Datatype datatype, MPIO_Request *request)
 {
   
 	if (myrank < 2) printf("new iwrite function executed\n");
@@ -212,6 +214,9 @@ int MPI_File_iwrite_at(MPI_File fh, MPI_Offset offset, void *buf,
   MPI_Barrier (MPI_COMM_WORLD);
 
   reroute(fh, offset, buf, count, datatype, request);
+
+  if (myrank < 20)
+  printf ("%d: am back from reroute\n", myrank); 
 
   //
   //PMPI_File_iwrite_at(fh, offset, buf, count, datatype, request);

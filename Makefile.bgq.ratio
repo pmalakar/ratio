@@ -1,22 +1,10 @@
-ifdef mpi3
-CC = /home/pkcoff/mpich-opensrc/install-xl.legacy.ndebug/bin/mpicc
-CXX = /home/pkcoff/mpich-opensrc/install-xl.legacy.ndebug/bin/mpicxx
-LIBS = -L/home/pkcoff/mpich-opensrc/install-xl.legacy.ndebug/lib
-INC = -I/home/pkcoff/mpich-opensrc/install-xl.legacy.ndebug/include -I/bgsys/drivers/ppcfloor -I/bgsys/drivers/ppcfloor/spi/include/kernel/cnk -I/bgsys/drivers/ppcfloor/hwi/include/bqc
-DEFINES = -DMPI3
-else
 CC=mpixlc
 CXX=mpixlcxx
-endif
 
 #common
 CFLAGS=-O2 -g -qmaxmem=-1 #-S #-O3
 
-ifdef mpi3
-DEFINES += -DBGQ -DMPI3 #-DDEBUG
-else
 DEFINES += -DBGQ -DDEBUG  #-DSTATS #-DDEBUG
-endif
 
 ifdef VESTA
 DEFINES += -DVESTA
@@ -29,28 +17,14 @@ LIBBGPM = -L/bgsys/drivers/ppcfloor/bgpm/lib -lbgpm -lrt -lstdc++
 LIBMPITRACE =-L/soft/perftools/hpctw/lib -lmpitrace
 LIBUTILS =-L/projects/Performance/preeti/utils -lbgqutils 
 LIBALGO = -L./ -lalgo
-
-ifdef mpi3
-LIBS += $(LIBUTILS) $(LIBBGPM) #$(LIBMPITRACE)
-else
 LIBS += $(LIBALGO) 
-endif
 INC += -I/projects/Performance/preeti/utils	
 
 SRCS = contiguous.cxx	
 
-#route.cxx \
-		personality.cxx \
-		neighbour.cxx \
-		iotree.cxx
-
 OBJS = 	$(SRCS:.cxx=.o)
 
-ifdef mpi3
-TARGET = iotree.mpi3
-else
 TARGET = testcase
-endif
 
 all:    $(TARGET)
 		@echo Compilation done.
