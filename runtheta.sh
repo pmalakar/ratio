@@ -57,7 +57,7 @@ do
    do
     for size in 32 1024 4096
     do
-      OUTPUT=output_${COBALT_PARTSIZE}_${RANKS}_R${ppn}_${STRIPECNT}_${STRIPESZ}_${iter}_${COBALT_JOBID}
+      OUTPUT=output_${COBALT_PARTSIZE}_${RANKS}_R${ppn}_${STRIPECNT}_${STRIPESZ}_${size}_${iter}_${COBALT_JOBID}
 
       ARG=" $size 0 0 1 0"
 	    echo "Starting $OUTPUT with $ARG"
