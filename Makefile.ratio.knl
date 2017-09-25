@@ -1,0 +1,49 @@
+CC=cc
+CXX=CC
+
+#common
+CFLAGS=-O2 -g 
+
+#CFLAGS+=-qmaxmem=-1 #-S #-O3
+
+DEFINES += -DDEBUG -DKNL
+#-DBGQ -DDEBUG  #-DSTATS #-DDEBUG
+
+ifdef VESTA
+DEFINES += -DVESTA
+endif
+
+ifdef CETUS
+DEFINES += -DCETUS
+endif
+
+ifdef BGQ
+LIBHPM = -L/soft/perftools/hpctw/lib -lmpihpm 
+LIBBGPM = -L/bgsys/drivers/ppcfloor/bgpm/lib -lbgpm -lrt -lstdc++ 
+LIBMPITRACE =-L/soft/perftools/hpctw/lib -lmpitrace
+LIBUTILS =-L/projects/Performance/preeti/utils -lbgqutils 
+endif
+
+#LIBALGO = -L./ -lalgo
+#LIBS += $(LIBALGO) 
+
+#INC += -I/projects/Performance/preeti/utils	
+
+SRCS = contiguous.cxx	
+
+OBJS = 	$(SRCS:.cxx=.o)
+
+TARGET = testcase
+
+all:    $(TARGET)
+		@echo Compilation done.
+
+%.o:%.cxx
+		$(CXX) $(CFLAGS) -c $< -o $@ $(INC) $(LIBS) $(DEFINES)
+
+$(TARGET): $(OBJS) 
+		$(CXX) $(CFLAGS) -o $(TARGET) $(OBJS) $(INC) $(LIBS) $(DEFINES)   
+
+clean:
+		$(RM) *.o *~ $(TARGET)
+
