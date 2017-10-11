@@ -6,7 +6,7 @@ CFLAGS=-O2 -g
 
 #CFLAGS+=-qmaxmem=-1 #-S #-O3
 
-DEFINES += -DDEBUG -DTHETA
+DEFINES += -DDEBUG -DKNL -DTHETA
 #-DBGQ -DDEBUG  #-DSTATS #-DDEBUG
 
 ifdef VESTA
@@ -24,8 +24,13 @@ LIBMPITRACE =-L/soft/perftools/hpctw/lib -lmpitrace
 LIBUTILS =-L/projects/Performance/preeti/utils -lbgqutils 
 endif
 
+#ifdef THETA
+LIBLINFO=-L/projects/Performance/preeti/work/systest/theta/lnet -llinfo 
+INC += -I/projects/Performance/preeti/work/systest/theta/lnet
+#endif
+
 #LIBALGO = -L./ -lalgo
-#LIBS += $(LIBALGO) 
+LIBS += $(LIBLINFO)
 
 #INC += -I/projects/Performance/preeti/utils	
 

@@ -5,6 +5,10 @@
 #include "common.h"
 #include "algorithm.h"
 
+#ifdef KNL
+#include "lustreinfo.h"
+#endif
+
 #define oneKB 1024
 #define NAME_LENGTH 256
 
@@ -73,7 +77,13 @@ void file_write(dataBlock *datum) {
 	/*
 	 * * * * * * * * * Independent MPI-IO to file system from all compute nodes - shared file * * * * * * * *
 	 */
-  MPI_File_open (MPI_COMM_WORLD, fileNameFS, mode, MPI_INFO_NULL, &fileHandle);
+  //MPI_File_open (MPI_COMM_WORLD, fileNameFS, mode, MPI_INFO_NULL, &fileHandle);
+  MPI_File_open (MPI_COMM_WORLD, testFileName, mode, MPI_INFO_NULL, &fileHandle);
+
+#ifdef KNL
+  get_file_info(testFileName);
+#endif 
+
 	for (int i=1; i<=SKIP; i++)
 	 totalBytes += writeFile(datum, count);
 	tIOStart = MPI_Wtime();
@@ -133,6 +143,11 @@ void file_read(dataBlock *datum) {
   puts(" ");
 #else
   MPI_File_open (MPI_COMM_WORLD, testFileName, mode, MPI_INFO_NULL, &fileHandle);
+
+#ifdef KNL
+  //get_file_info(testFileName);
+#endif
+
 	for (int i=1; i<=SKIP; i++)
 	 totalBytes += readFile(datum, count);
 	tIOStart = MPI_Wtime();
@@ -155,7 +170,7 @@ int main(int argc, char *argv[]) {
 
   sprintf(testFileName,"TestFile-%d",size);
 
-#ifndef THETA
+#ifndef KNL
   init_(argc, argv);
 #endif
   count = atoi(argv[1]) * oneKB;
