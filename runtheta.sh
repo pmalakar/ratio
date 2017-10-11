@@ -16,6 +16,7 @@ export ATP_ENABLED=1
 export MPICH_MPIIO_HINTS_DISPLAY=1
 export MPICH_MPIIO_AGGREGATOR_PLACEMENT_DISPLAY=1 
 export MPICH_MPIIO_STATS=1
+export MPICH_MPIIO_XSTATS=1
 export MPICH_MPIIO_TIMERS=1
 export MPICH_MPIIO_ABORT_ON_RW_ERROR=enable
 
@@ -27,6 +28,7 @@ export KMP_AFFINITY=verbose
 export MPICH_VERSION_DISPLAY=1
 export MPICH_NEMESIS_ASYNC_PROGRESS=1
 export MPICH_ENV_DISPLAY=1
+export MPICH_MPIIO_HINTS="*:cb_nodes=2"
 
 locfile=loc_${COBALT_JOBSIZE}_${COBALT_JOBID}.txt
 echo ${COBALT_PARTNAME} > $locfile 
@@ -34,7 +36,7 @@ jobmapfile=jobmap_${COBALT_JOBSIZE}_${COBALT_JOBID}.txt
 #python parsejobnodes.py theta.computenodes $locfile > $jobmapfile
 
 aprun -n 1 -N 1 -d 1 -j 1 -r 1 ./location.x
-aprun -n 1 -N 1 -d 1 -j 1 -r 1 ./status.knl
+#aprun -n 1 -N 1 -d 1 -j 1 -r 1 ./info
 
 THREADS=1
 #export PAT_RT_SUMMARY=0
@@ -42,11 +44,12 @@ THREADS=1
 startiter=$1
 enditer=$(($startiter+1))
 
-ENVVARS="" #--env MPICH_ENV_DISPLAY=1 --env MPICH_VERSION_DISPLAY=1 --env MPICH_SMP_SINGLE_COPY_SIZE=1024 --env MPICH_NEMESIS_ASYNC_PROGRESS=1 --env MPICH_SHARED_MEM_COLL_OPT=1 --env MPICH_GNI_ASYNC_PROGRESS_STATS=enabled -r 1"
+ENVVARS="" #"--env MPICH_MPIIO_HINTS "*:cb_nodes=4""
+#--env MPICH_ENV_DISPLAY=1 --env MPICH_VERSION_DISPLAY=1 --env MPICH_SMP_SINGLE_COPY_SIZE=1024 --env MPICH_NEMESIS_ASYNC_PROGRESS=1 --env MPICH_SHARED_MEM_COLL_OPT=1 --env MPICH_GNI_ASYNC_PROGRESS_STATS=enabled -r 1"
 
 for iter in `seq $startiter $enditer` 
 do
- for ppn in 32
+ for ppn in 64
  do
   RANKS=$((${COBALT_PARTSIZE}*$ppn))
 	echo 
